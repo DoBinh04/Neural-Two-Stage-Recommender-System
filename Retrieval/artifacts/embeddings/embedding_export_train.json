@@ -1,0 +1,6 @@
+{
+  "user_embeddings": "/content/recsys/Retrieval/artifacts/embeddings/user_embeddings_train.npz",
+  "item_embeddings": "/content/recsys/Retrieval/artifacts/embeddings/item_embeddings_train.npz",
+  "num_users": 56477,
+  "num_items": 36325
+}
