@@ -10,7 +10,7 @@ def build_dataloader(
     item2idx,
     root2idx,
     leaf2idx,
-    batch_size=1024,
+    batch_size=256,
     num_workers=2,
     pin_memory=True,
 ):
