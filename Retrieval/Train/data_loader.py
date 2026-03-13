@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader
-from retrieval_dataset import RetrievalDataset
+
+from Retrieval.Train.retrieval_dataset import RetrievalDataset
 
 
 def build_dataloader(

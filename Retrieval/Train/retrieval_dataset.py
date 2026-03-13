@@ -38,6 +38,9 @@ class RetrievalDataset(Dataset):
 
     def _prepare(self):
 
+        self.user_raw_ids = self.df["user_id"].values
+        self.item_raw_ids = self.df["item_id"].values
+
         # map user_id -> index
         self.df["user_idx"] = (
             self.df["user_id"]
@@ -118,6 +121,16 @@ class RetrievalDataset(Dataset):
         else:
             self.weights = np.ones(len(self.df), dtype=np.float32)
 
+        if "event" in self.df.columns:
+            self.events = self.df["event"].astype(str).values
+            self.relevance = np.isin(
+                self.events,
+                ["addtocart", "transaction"]
+            ).astype(np.float32)
+        else:
+            self.events = np.array(["unknown"] * len(self.df), dtype=object)
+            self.relevance = np.zeros(len(self.df), dtype=np.float32)
+
     def __len__(self):
         return len(self.df)
 
@@ -146,4 +159,8 @@ class RetrievalDataset(Dataset):
             "leaf": torch.tensor(self.leafs[idx], dtype=torch.long),
 
             "weight": torch.tensor(self.weights[idx], dtype=torch.float32),
+            "relevance": torch.tensor(self.relevance[idx], dtype=torch.float32),
+            "user_raw_id": str(self.user_raw_ids[idx]),
+            "item_raw_id": str(self.item_raw_ids[idx]),
+            "event": self.events[idx],
         }
