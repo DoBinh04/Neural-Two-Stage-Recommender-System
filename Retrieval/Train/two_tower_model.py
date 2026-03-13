@@ -46,17 +46,17 @@ class TwoTowerModel(nn.Module):
 
     def forward(self, batch):
 
+        user_vec = self.encode_user(batch)
+        item_vec = self.encode_item(batch)
+
+        return user_vec, item_vec
+
+    def encode_user(self, batch):
+
         user_id = batch["user_id"]
-        item_id = batch["item_id"]
         recent_items = batch["recent_items"]
 
         user_numeric = batch["user_numeric"]
-        item_numeric = batch["item_numeric"]
-
-        root = batch["root"]
-        leaf = batch["leaf"]
-
-        # ===== USER TOWER =====
 
         user_emb = self.user_embedding(user_id)
 
@@ -79,7 +79,15 @@ class TwoTowerModel(nn.Module):
 
         user_vec = self.user_mlp(user_features)
 
-        # ===== ITEM TOWER =====
+        return user_vec
+
+    def encode_item(self, batch):
+
+        item_id = batch["item_id"]
+        item_numeric = batch["item_numeric"]
+
+        root = batch["root"]
+        leaf = batch["leaf"]
 
         item_emb = self.item_embedding(item_id)
 
@@ -93,4 +101,4 @@ class TwoTowerModel(nn.Module):
 
         item_vec = self.item_mlp(item_features)
 
-        return user_vec, item_vec
+        return item_vec
