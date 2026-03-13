@@ -1,9 +1,9 @@
 def build_interactions(df):
 
     weights = {
-        "view": 1,
-        "addtocart": 5,
-        "transaction": 10
+        "view": 0.02,
+        "addtocart": 0.3,
+        "transaction": 1.0
     }
 
     df["weight"] = df["event"].map(weights)

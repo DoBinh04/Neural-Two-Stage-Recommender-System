@@ -37,10 +37,10 @@ class RetrievalDataset(Dataset):
 
     def _pad_seq(self, seq):
 
-        seq = seq[:self.max_seq_len]
+        seq = seq[-self.max_seq_len:]   # giữ last items
 
         if len(seq) < self.max_seq_len:
-            seq = seq + [0] * (self.max_seq_len - len(seq))
+            seq = [0] * (self.max_seq_len - len(seq)) + seq
 
         return seq
 
