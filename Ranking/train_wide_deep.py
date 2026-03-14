@@ -32,22 +32,33 @@ def interaction_label(event_name):
 
 class RankingDataset(Dataset):
     def __init__(self, features, labels, group_ids):
-        self.features = torch.tensor(np.array(features), dtype=torch.float32)
-        self.labels = torch.tensor(np.array(labels), dtype=torch.float32)
+        # Keep backing storage as NumPy to avoid materializing the
+        # whole dataset as Torch tensors at construction time.
+        self.features = np.asarray(features, dtype=np.float32)
+        self.labels = np.asarray(labels, dtype=np.float32)
         self.group_ids = group_ids
+        self.feature_dim = self.features.shape[1] if self.features.size > 0 else 0
 
     def __len__(self):
         return len(self.labels)
 
     def __getitem__(self, idx):
         return {
-            "features": self.features[idx],
-            "label": self.labels[idx],
+            "features": torch.from_numpy(self.features[idx]),
+            "label": torch.tensor(self.labels[idx], dtype=torch.float32),
             "group": self.group_ids[idx],
         }
 
 
-def build_ranking_rows(df, user_embedding_map, item_embedding_map, index, item_ids, top_k=100):
+def build_ranking_rows(
+    df,
+    user_embedding_map,
+    item_embedding_map,
+    index,
+    item_ids,
+    top_k=100,
+    force_include_positive=True,
+):
     features = []
     labels = []
     group_ids = []
@@ -65,7 +76,7 @@ def build_ranking_rows(df, user_embedding_map, item_embedding_map, index, item_i
         candidate_ids, _ = retrieve_topk(index, item_ids, user_vec, k=top_k)
         candidate_ids = candidate_ids[0] if candidate_ids else []
 
-        if pos_item not in candidate_ids:
+        if force_include_positive and pos_item not in candidate_ids:
             candidate_ids = [pos_item] + candidate_ids[:-1]
 
         for cand_id in candidate_ids:
@@ -147,7 +158,7 @@ def evaluate_ndcg_at_k(model, dataset, device, k=10):
 
 def train_model(train_ds, val_ds, output_dir, epochs=5, batch_size=512, lr=1e-3):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    input_dim = train_ds.features.shape[1]
+    input_dim = train_ds.feature_dim
 
     model = WideAndDeepRanker(input_dim=input_dim).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
@@ -221,8 +232,9 @@ def main():
     train_df = pd.read_parquet(train_path)
     val_df = pd.read_parquet(val_path)
 
-    user_emb = load_embedding_npz(emb_dir / "user_embeddings_train.npz")
-    item_emb = load_embedding_npz(emb_dir / "item_embeddings_train.npz")
+    user_emb_train = load_embedding_npz(emb_dir / "user_embeddings_train.npz")
+    item_emb_train = load_embedding_npz(emb_dir / "item_embeddings_train.npz")
+    user_emb_val = load_embedding_npz(emb_dir / "user_embeddings_val.npz")
 
     index, item_ids = load_faiss_index(
         index_dir / "item_faiss.index",
@@ -230,10 +242,22 @@ def main():
     )
 
     train_x, train_y, train_groups = build_ranking_rows(
-        train_df, user_emb, item_emb, index, item_ids, top_k=100
+        train_df,
+        user_emb_train,
+        item_emb_train,
+        index,
+        item_ids,
+        top_k=100,
+        force_include_positive=True,
     )
     val_x, val_y, val_groups = build_ranking_rows(
-        val_df, user_emb, item_emb, index, item_ids, top_k=100
+        val_df,
+        user_emb_val,
+        item_emb_train,
+        index,
+        item_ids,
+        top_k=100,
+        force_include_positive=False,
     )
 
     if not train_x or not val_x:
