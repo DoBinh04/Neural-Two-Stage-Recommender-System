@@ -216,7 +216,7 @@ def main():
 
     emb_dir = root / "Retrieval/artifacts/embeddings"
     index_dir = root / "Retrieval/artifacts/index"
-    ranker_out = root / "Reranking/artifacts"
+    ranker_out = root / "Ranking/artifacts"
 
     train_df = pd.read_parquet(train_path)
     val_df = pd.read_parquet(val_path)
